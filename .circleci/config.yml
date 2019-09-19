@@ -1,0 +1,29 @@
+version: 2
+
+jobs:
+  lnd:
+    machine: true
+    steps:
+      - checkout
+      - run: echo 'export DOCKER_TAG=${DOCKER_USERNAME}/lnd:${CIRCLE_BRANCH}' >> $BASH_ENV
+      - run: docker info
+      - run: docker build . -t ${DOCKER_TAG}
+      - run: docker run --rm ${DOCKER_TAG} --version
+      - run: docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
+      - run: docker push ${DOCKER_TAG}
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - lnd
+  nightly:
+    jobs:
+      - lnd
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - master
