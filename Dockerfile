@@ -17,10 +17,11 @@ RUN apk add --no-cache --update alpine-sdk \
 # Start a new, final image.
 FROM alpine:3.10 as final
 
-# Add bash and ca-certs, for quality of life and SSL-related reasons.
+# Add bash and ca-certs, for quality of life and SSL-related reasons and curl for opening inbound channels.
 RUN apk --no-cache add \
     bash \
-    ca-certificates
+    ca-certificates \
+    curl
 
 # Add user and group for bitcoin process.
 RUN addgroup -S lnd \
