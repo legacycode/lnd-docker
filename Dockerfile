@@ -38,8 +38,8 @@ VOLUME ["/home/lnd/.lnd"]
 COPY --from=builder /go/bin/lncli /bin/
 COPY --from=builder /go/bin/lnd /bin/
 
-# Expose lnd ports (p2p, rpc).
-EXPOSE 9735 10009
+# Expose lnd ports (rest, p2p, rpc).
+EXPOSE 8080 9735 10009
 
 # Specify the start command and entrypoint as the lnd daemon.
 ENTRYPOINT ["lnd"]
