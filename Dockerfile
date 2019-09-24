@@ -12,7 +12,7 @@ RUN apk add --no-cache --update alpine-sdk \
 &&  git clone https://github.com/lightningnetwork/lnd --branch=v0.7.1-beta /go/src/github.com/lightningnetwork/lnd \
 &&  cd /go/src/github.com/lightningnetwork/lnd \
 &&  make \
-&&  make install tags="autopilotrpc signrpc walletrpc chainrpc invoicesrpc routerrpc"
+&&  make install tags="autopilotrpc signrpc walletrpc chainrpc invoicesrpc routerrpc monitoring"
 
 # Start a new, final image.
 FROM alpine:3.10 as final
