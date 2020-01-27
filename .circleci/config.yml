@@ -1,7 +1,7 @@
 version: 2
 
 jobs:
-  lnd:
+  build:
     machine: true
     steps:
       - checkout
@@ -16,10 +16,10 @@ workflows:
   version: 2
   commit:
     jobs:
-      - lnd
+      - build
   nightly:
     jobs:
-      - lnd
+      - build
     triggers:
       - schedule:
           cron: "0 2 * * *"
