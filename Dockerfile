@@ -1,33 +1,70 @@
-FROM golang:1.12.9-alpine3.10 as builder
+ARG LND_VERSION=v0.9.0-beta
 
-# Force Go to use the cgo based DNS resolver. This is required to ensure DNS
-# queries required to connect to linked containers succeed.
-ENV GODEBUG netdns=cgo
+FROM debian:buster-slim AS builder
+
+ARG LND_VERSION
 
 # Install dependencies and build the binaries.
-RUN apk add --no-cache --update alpine-sdk \
-    git \
-    make \
-    gcc \
-&&  git clone https://github.com/lightningnetwork/lnd --branch=v0.7.1-beta /go/src/github.com/lightningnetwork/lnd \
-&&  cd /go/src/github.com/lightningnetwork/lnd \
-&&  make \
-&&  make install tags="autopilotrpc signrpc walletrpc chainrpc invoicesrpc routerrpc monitoring"
+RUN apt-get update --yes \
+  && apt-get install --no-install-recommends --yes \
+    ca-certificates=20190110 \
+    dirmngr=2.2.12-1+deb10u1 \
+    gpg=2.2.12-1+deb10u1 \
+    gpg-agent=2.2.12-1+deb10u1 \
+    wget=1.20.1-1.1 \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /lnd
+
+RUN set -eux; \
+  arch="$(dpkg --print-architecture)"; \
+  case "$arch" in \
+    i386) \
+      url=https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/lnd-linux-386-$LND_VERSION.tar.gz ;; \
+    amd64) \
+      url=https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/lnd-linux-amd64-$LND_VERSION.tar.gz ;; \
+    armhf) \
+      url=https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/lnd-linux-armv7-$LND_VERSION.tar.gz ;; \
+    arm64) \
+      url=https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/lnd-linux-arm64-$LND_VERSION.tar.gz ;; \
+    *) \
+      echo >&2 "error: unsupported architecture ($arch)"; exit 1 ;;\
+  esac; \
+  \
+  wget --quiet $url \
+  && wget --quiet https://keybase.io/roasbeef/pgp_keys.asc \
+  && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt \
+  && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt.sig \
+  && gpg --import pgp_keys.asc \
+  && gpg --verify manifest-$LND_VERSION.txt.sig \
+  && grep "${url##*/}" manifest-$LND_VERSION.txt | sha256sum -c - \
+  && tar -xzf ./*.tar.gz -C /lnd --strip-components=1
+
 
 # Start a new, final image.
-FROM alpine:3.10 as final
+FROM debian:buster-slim AS final
 
-# Add bash and ca-certs, for quality of life and SSL-related reasons and curl for opening inbound channels.
-RUN apk --no-cache add \
-    bash \
-    ca-certificates \
-    curl
+ARG BUILD_DATE
+ARG VCS_REF
+ARG LND_VERSION
+
+LABEL org.label-schema.schema-version="1.0" \
+  org.label-schema.build-date=$BUILD_DATE \
+  org.label-schema.name="legacycode/lnd" \
+  org.label-schema.description="A Docker image based on Debian Linux ready to run a Lightning node!" \
+  org.label-schema.usage="https://hub.docker.com/r/legacycode/lnd" \
+  org.label-schema.url="https://hub.docker.com/r/legacycode/lnd" \
+  org.label-schema.vcs-url="https://github.com/legacycode/lnd-docker" \
+  org.label-schema.vcs-ref=$VCS_REF \
+  org.label-schema.version=$LND_VERSION \
+  maintainer="info@legacycode.org"
 
 # Add user and group for bitcoin process.
-RUN addgroup -S lnd \
-  && adduser -S lnd -G lnd \
-  && mkdir /home/lnd/.lnd \
-  && chown lnd:lnd /home/lnd/.lnd
+RUN useradd -r lnd \
+  && mkdir -p /home/lnd/.lnd \
+  && chmod 700 /home/lnd/.lnd \
+  && chown -R lnd /home/lnd/.lnd
 
 # Change user.
 USER lnd
@@ -36,8 +73,8 @@ USER lnd
 VOLUME ["/home/lnd/.lnd"]
 
 # Copy the binaries from the builder image.
-COPY --from=builder /go/bin/lncli /bin/
-COPY --from=builder /go/bin/lnd /bin/
+COPY --from=builder /lnd/lncli /bin/
+COPY --from=builder /lnd/lnd /bin/
 
 # Expose lnd ports (rest, p2p, rpc).
 EXPOSE 8080 9735 10009
