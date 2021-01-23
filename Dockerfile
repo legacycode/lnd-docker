@@ -1,4 +1,4 @@
-ARG LND_VERSION=v0.9.0-beta
+ARG LND_VERSION=v0.11.1-beta
 
 FROM debian:buster-slim AS builder
 
@@ -33,7 +33,7 @@ RUN set -eux; \
   esac; \
   \
   wget --quiet $url \
-  && wget --quiet https://keybase.io/roasbeef/pgp_keys.asc \
+  && wget --quiet https://keybase.io/bitconner/pgp_keys.asc \
   && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt \
   && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt.sig \
   && gpg --import pgp_keys.asc \
