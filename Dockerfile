@@ -1,4 +1,4 @@
-ARG LND_VERSION=v0.9.0-beta
+ARG LND_VERSION=v0.11.1-beta
 
 FROM debian:buster-slim AS builder
 
@@ -7,7 +7,7 @@ ARG LND_VERSION
 # Install dependencies and build the binaries.
 RUN apt-get update --yes \
   && apt-get install --no-install-recommends --yes \
-    ca-certificates=20190110 \
+    ca-certificates=20200601~deb10u2 \
     dirmngr=2.2.12-1+deb10u1 \
     gpg=2.2.12-1+deb10u1 \
     gpg-agent=2.2.12-1+deb10u1 \
@@ -33,7 +33,7 @@ RUN set -eux; \
   esac; \
   \
   wget --quiet $url \
-  && wget --quiet https://keybase.io/roasbeef/pgp_keys.asc \
+  && wget --quiet https://keybase.io/bitconner/pgp_keys.asc \
   && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt \
   && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt.sig \
   && gpg --import pgp_keys.asc \

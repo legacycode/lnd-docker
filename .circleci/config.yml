@@ -26,7 +26,7 @@ jobs:
       - run: docker buildx use mybuilder
       - run: docker buildx inspect --bootstrap
       
-      # build and push bintcoind
+      # build and push
       - checkout
       - run: echo 'export DOCKER_TAG=${DOCKER_USERNAME}/lnd:${CIRCLE_BRANCH}${CIRCLE_TAG}' >> $BASH_ENV
       - run: docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
