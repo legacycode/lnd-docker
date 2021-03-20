@@ -1,4 +1,4 @@
-ARG LND_VERSION=v0.11.1-beta
+ARG LND_VERSION=v0.12.1-beta
 
 FROM debian:buster-slim AS builder
 
@@ -8,10 +8,10 @@ ARG LND_VERSION
 RUN apt-get update --yes \
   && apt-get install --no-install-recommends --yes \
     ca-certificates=20200601~deb10u2 \
+    curl=7.64.0-4+deb10u1 \
     dirmngr=2.2.12-1+deb10u1 \
     gpg=2.2.12-1+deb10u1 \
     gpg-agent=2.2.12-1+deb10u1 \
-    wget=1.20.1-1.1 \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -32,13 +32,15 @@ RUN set -eux; \
       echo >&2 "error: unsupported architecture ($arch)"; exit 1 ;;\
   esac; \
   \
-  wget --quiet $url \
-  && wget --quiet https://keybase.io/bitconner/pgp_keys.asc \
-  && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt \
-  && wget --quiet https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt.sig \
-  && gpg --import pgp_keys.asc \
-  && gpg --verify manifest-$LND_VERSION.txt.sig \
-  && grep "${url##*/}" manifest-$LND_VERSION.txt | sha256sum -c - \
+  c_rehash \
+  && curl $url -LOJ \
+  && curl https://keybase.io/bitconner/pgp_keys.asc | gpg --import \
+  && curl https://keybase.io/roasbeef/pgp_keys.asc | gpg --import \
+  && curl https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt -LOJ \
+  && curl https://github.com/lightningnetwork/lnd/releases/download/$LND_VERSION/manifest-$LND_VERSION.txt.sig -LOJ \
+  && curl https://github.com/lightningnetwork/lnd/releases/download/v0.12.1-beta/manifest-roasbeef-v0.12.1-beta.sig -LOJ \
+  && gpg --verify manifest-roasbeef-$LND_VERSION.sig manifest-$LND_VERSION.txt \
+  && sha256sum manifest-$LND_VERSION.txt \
   && tar -xzf ./*.tar.gz -C /lnd --strip-components=1
 
 
